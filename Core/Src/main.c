@@ -53,13 +53,13 @@ float frequency;
 float period;
 float capa;
 float moving_avg_freq ;
-volatile uint8_t gu8_State = IDLE;
-volatile uint8_t gu8_MSG[35] = {'\0'};
-volatile uint32_t gu32_T1 = 0;
-volatile uint32_t gu32_T2 = 0;
-volatile uint32_t gu32_Ticks = 0;
-volatile uint16_t gu16_TIM2_OVC = 0;
-volatile uint32_t gu32_Freq = 0;
+volatile uint8_t State = IDLE;
+volatile uint8_t MSG[35] = {'\0'};
+volatile uint32_t T1 = 0;
+volatile uint32_t T2 = 0;
+volatile uint32_t Ticks = 0;
+volatile uint16_t TIM2_OVC = 0;
+volatile uint32_t Freq= 0;
 int touche=0;
 int count=0;
 int ind_buff;
@@ -565,29 +565,28 @@ float moving_average(uint32_t new_freq) {
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
-	if(gu8_State == IDLE)
+	if(State == IDLE)
 	    {
-	        gu32_T1 = TIM2->CCR1;
-	        gu16_TIM2_OVC = 0;
-	        gu8_State = DONE;
+	        T1 = TIM2->CCR1;
+	        TIM2_OVC = 0;
+	        State = DONE;
 	    }
-	    else if(gu8_State == DONE)
+	    else if(State == DONE)
 	    {
-	        gu32_T2 = TIM2->CCR1;
-	        gu32_Ticks = (gu32_T2 + (gu16_TIM2_OVC*65536)) - gu32_T1;
-	        gu32_Freq = (uint32_t)(F_CLK/gu32_Ticks);
-	        if(gu32_Freq != 0)
+			T2 = TIM2->CCR1;
+	        Ticks = (T2 + (TIM2_OVC*65536)) - T1;
+	        Freq = (uint32_t)(F_CLK/Ticks);
+	        if(Freq != 0)
 	        {
-	          //sprintf(gu8_MSG, "Frequency = %lu Hz\n\r", gu32_Freq);
-	          moving_avg_freq = moving_average(gu32_Freq);
-	          if(moving_avg_freq<20000){
-	          		if(count>1000){
+	          moving_avg_freq = moving_average(gu32_Freq); //eviter le rechargement à 0 du timer qui gene le seuil 
+	          if(moving_avg_freq<10000){ //seuil 
+	          		if(count>1000){ //anti rebond
 	          			touche= !touche;
 	          			count=0;
 	          	}
 	          }
 	        }
-	        gu8_State = IDLE;
+	        State = IDLE;
 	    }
 
 
@@ -597,7 +596,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
 
     if (htim->Instance == TIM2) {
-    	gu16_TIM2_OVC++;
+    	TIM2_OVC++;
     }
     if(htim->Instance == TIM16){
     	count++;
